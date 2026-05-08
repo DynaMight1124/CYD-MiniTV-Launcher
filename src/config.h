@@ -3,6 +3,9 @@
 
 #include <Arduino.h>
 
+// --- UI Settings ---
+#define MENU_TITLE "CYD Mini TV" // Change this to amend the title in the menu
+
 // --- App Settings ---
 #define APP_PATH "/apps"         // Folder on SD card for .bin files
 #define NAV_BUTTON 3             // GPIO Pin for the navigation button
@@ -13,19 +16,24 @@
 #define ENABLE_AUTOBOOT true     // Set to false to always stay in the launcher menu on boot
 #define AUTOBOOT_DELAY_SEC 5     // Number of seconds to wait before autobooting the last app
 
-// --- Controller Settings (MCP23017) ---
+// --- Controller Settings (I2C) ---
 #define ENABLE_I2C_CONTROLLER true
 #define I2C_SDA 22               // CYD CN1 Header Pin 1
 #define I2C_SCL 27               // CYD CN1 Header Pin 2
-#define MCP_ADDR 0x20            // Default address for MCP23017
-#define MCP_BTN_UP 2             // Pin 2 for UP
-#define MCP_BTN_DOWN 3           // Pin 3 for DOWN
-#define MCP_BTN_A 4              // Pin 4 for A
+#define IO_EXPANDER_ADDRESS 0x20 // Default address for most expanders
+
+// --- Choose your Controller Chip ---
+#define USE_MCP23017             // Uncomment this if using MCP23017
+//#define USE_PCF8575            // Uncomment this if using PCF8575
+
+// Common Joystick mappings
+#define BTN_UP 2                 // Pin for UP
+#define BTN_DOWN 3               // Pin for DOWN
+#define BTN_A 4                  // Pin for A (Flash)
 
 // --- Sorting Settings ---
-#define SORT_ALPHABETICAL 1
-#define SORT_NEWEST_FIRST 0
-#define APP_SORT_METHOD SORT_ALPHABETICAL // SORT_NEWEST_FIRST to show recent files first or SORT_ALPHABETICAL for alphabetical.
+#define SORT_ALPHABETICAL        // Uncomment this to sort A-Z
+//#define SORT_NEWEST_FIRST      // Uncomment this to show most recently added files first
 
 // --- Hardware Profiles ---
 #if defined(BOARD_CYD2USB) || defined(BOARD_CYD)
