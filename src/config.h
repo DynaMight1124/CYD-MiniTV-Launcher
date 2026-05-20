@@ -4,7 +4,9 @@
 #include <Arduino.h>
 
 // --- UI Settings ---
-#define MENU_TITLE "CYD Mini TV" // Change this to amend the title in the menu
+#ifndef MENU_TITLE
+  #define MENU_TITLE "CYD Mini TV" // Change this to amend the title in the menu
+#endif
 
 // --- App Settings ---
 #define APP_PATH "/apps"         // Folder on SD card for .bin files
@@ -23,8 +25,9 @@
 #define IO_EXPANDER_ADDRESS 0x20 // Default address for most expanders
 
 // --- Choose your Controller Chip ---
-#define USE_MCP23017             // Uncomment this if using MCP23017
-//#define USE_PCF8575            // Uncomment this if using PCF8575
+#if !defined(USE_MCP23017) && !defined(USE_PCF8575)
+  #define USE_MCP23017           // Options are: USE_MCP23017 or USE_PCF8575
+#endif
 
 // Common Joystick mappings
 #define BTN_UP 2                 // Pin for UP
@@ -46,7 +49,10 @@
   #define TFT_CS 15
   #define TFT_DC 2
   #define TFT_RST -1
-  #define SCREEN_ROTATION 1      // Change to 3 to flip 180 degrees.
+
+  #ifndef SCREEN_ROTATION
+    #define SCREEN_ROTATION 1 // Change to 3 to flip 180 degrees.
+  #endif
   
   #ifdef BOARD_CYD2USB
     #define SCREEN_INVERSION true // CYD2USB

@@ -14,13 +14,19 @@ boot_bin = build_dir / "bootloader.bin"
 part_bin = build_dir / "partitions.bin"
 app_bin  = build_dir / "firmware.bin"
 
-# Output combined binary
-out_bin = proj_dir / f"MiniTV-Launcher-{pioenv}.bin"
-
 def merge_bins_callback(target, source, env):
     # Esptool path and Python executable
     esptool_pkg = env.PioPlatform().get_package_dir("tool-esptoolpy")
     python_exe = env.get("PYTHONEXE", "python")
+    
+    # Mapping environment names to the friendly filenames requested
+    friendly_name = pioenv
+    if "minitv" in pioenv:
+        friendly_name = pioenv.replace("minitv-", "MiniTV-Launcher-")
+    elif "handheld" in pioenv:
+        friendly_name = pioenv.replace("handheld-", "CYD-Handheld-")
+        
+    out_file = proj_dir / f"{friendly_name}.bin"
     
     missing = [p for p in [boot_bin, part_bin, app_bin] if not p.exists()]
     if missing:
@@ -33,13 +39,13 @@ def merge_bins_callback(target, source, env):
         python_exe, "-m", "esptool",
         "--chip", "esp32",
         "merge_bin",
-        "--output", str(out_bin),
+        "--output", str(out_file),
         "0x1000", str(boot_bin),
         "0x8000", str(part_bin),
         "0x10000", str(app_bin),
     ]
 
-    print(f"\nMerging binaries into: {out_bin.name}")
+    print(f"\nMerging binaries into: {out_file.name}")
     
     merge_env = os.environ.copy()
     merge_env["PYTHONPATH"] = str(esptool_pkg)
@@ -49,8 +55,8 @@ def merge_bins_callback(target, source, env):
         print(f"Merge failed with exit code {result.returncode}")
         print(result.stderr.decode(errors="replace"))
     else:
-        size = out_bin.stat().st_size
-        print(f"Success! Combined binary created: {out_bin} ({size} bytes)")
+        size = out_file.stat().st_size
+        print(f"Success! Combined binary created: {out_file.name} ({size} bytes)")
         print("You can flash this single file to address 0x0 using ESP-Flasher.")
 
 # This ensures it runs after firmware.bin is created
