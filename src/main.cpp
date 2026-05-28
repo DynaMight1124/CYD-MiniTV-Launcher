@@ -9,10 +9,22 @@
 #include "config.h"
 #include "soc/rtc_cntl_reg.h"
 #include "soc/soc.h"
+#include "driver/gpio.h"
 
-// Hardware Abstraction for Display
-Arduino_DataBus *bus = new Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCK, TFT_MOSI, TFT_MISO, HSPI);
-Arduino_GFX *gfx = new Arduino_ILI9341(bus, TFT_RST, SCREEN_ROTATION, false /* IPS */);
+// It forces the backlight pin to a low state at the absolute earliest possible moment to help reduce as much white flashes when booting
+void __attribute__((constructor)) pre_setup_kill_backlight() {
+    gpio_config_t io_conf = {};
+    io_conf.intr_type = GPIO_INTR_DISABLE;
+    io_conf.mode = GPIO_MODE_OUTPUT;
+    io_conf.pin_bit_mask = (1ULL << TFT_BL); 
+    io_conf.pull_down_en = GPIO_PULLDOWN_ENABLE;
+    io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+    gpio_config(&io_conf);
+    gpio_set_level((gpio_num_t)TFT_BL, 0);
+}
+
+Arduino_DataBus *bus = nullptr;
+Arduino_GFX *gfx = nullptr;
 
 std::vector<String> appFiles;
 int selectedIndex = 0;
@@ -93,12 +105,13 @@ uint16_t readExpander() {
 bool isExpanderPressed(uint8_t pin) { return !(readExpander() & (1 << pin)); }
 
 void updateSelection(int newIndex) {
-    if (appFiles.empty()) return;
-    if (newIndex < 0) newIndex = appFiles.size() - 1;
-    if (newIndex >= (int)appFiles.size()) newIndex = 0;
-    selectedIndex = newIndex;
-    if (selectedIndex < windowStart) windowStart = selectedIndex;
-    else if (selectedIndex >= windowStart + 6) windowStart = selectedIndex - 5;
+    if (!appFiles.empty()) {
+        if (newIndex < 0) newIndex = appFiles.size() - 1;
+        if (newIndex >= (int)appFiles.size()) newIndex = 0;
+        selectedIndex = newIndex;
+        if (selectedIndex < windowStart) windowStart = selectedIndex;
+        else if (selectedIndex >= windowStart + 6) windowStart = selectedIndex - 5;
+    }
     drawUI();
 }
 
@@ -211,12 +224,20 @@ void flashApp(String fileName) {
 }
 
 void setup() {
+    pinMode(TFT_BL, OUTPUT); digitalWrite(TFT_BL, LOW); 
     WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
-    Serial.begin(115200); delay(500);
+
+    bus = new Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCK, TFT_MOSI, TFT_MISO, HSPI);
+    gfx = new Arduino_ILI9341(bus, TFT_RST, SCREEN_ROTATION, SCREEN_INVERSION);
+    gfx->begin(); 
+    gfx->fillScreen(BLACK); 
+
+    Serial.begin(115200);
     pinMode(NAV_BUTTON, INPUT_PULLUP); pinMode(I2C_SDA, OUTPUT); pinMode(I2C_SCL, OUTPUT);
     prefs.begin("launcher", false); lastApp = prefs.getString("last_app", ""); prefs.end();
-    gfx->begin(); gfx->setRotation(SCREEN_ROTATION); gfx->invertDisplay(SCREEN_INVERSION);
-    pinMode(TFT_BL, OUTPUT); digitalWrite(TFT_BL, HIGH);
+    
+    delay(50); 
+    digitalWrite(TFT_BL, HIGH); 
 
     #if ENABLE_I2C_CONTROLLER
     i2c_start();
